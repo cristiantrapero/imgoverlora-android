@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">imgoverlora</string>
+    <string name="connect_ble">connect</string>
+    <string name="disconnect_ble">disconnect</string>
+    <string name="take_picture">take picture</string>
+    <string name="send_picture">send picture</string>
 </resources>
