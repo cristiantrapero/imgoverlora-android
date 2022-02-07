@@ -47,9 +47,10 @@
         </ScrollView>
 
         <ImageView
-            android:id="@+id/image"
+            android:id="@+id/imageView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:minHeight="300dp"
             app:srcCompat="@drawable/bluetooth" />
 
@@ -67,6 +68,7 @@
             android:layout_width="180dp"
             android:layout_height="80dp"
             android:drawableLeft="@drawable/ic_send"
+            android:enabled="false"
             android:text="@string/send_picture" />
 
     </LinearLayout>
