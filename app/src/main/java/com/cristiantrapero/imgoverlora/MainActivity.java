@@ -74,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
     BluetoothGattCharacteristic loadCharacteristic;
 
     // BLE characteristics
-    // TODO public static final String MAC_ADDRESS = "80:7D:3A:93:6A:5A";
     public static final UUID UUID_SERVICE = UUID.fromString("62613134-6534-3437-6434-633739336563");
     public static final UUID UUID_SEND_CHARACTERISTIC = UUID.fromString("64336533-6366-6132-6231-396238316630");
     public static final UUID UUID_LOAD_CHARACTERISTIC = UUID.fromString("33613861-3230-3030-3231-636132343230");
@@ -99,23 +98,23 @@ public class MainActivity extends AppCompatActivity {
 
         sendPictureButton = findViewById(R.id.sendPictureBtn);
         sendPictureButton.setOnClickListener(v -> {
-            Log.i(TAGBLE, "Send the image");
+            Log.i(TAGBLE, "SEND THE IMAGE OVER BLE");
+            Log.i("IMAGE SIZE", String.valueOf(pictureByteArray.length));
 
-            mtu = 100;
-            Log.i("IMAGEEEEEEEEN TAMANIO:   ", String.valueOf(pictureByteArray.length));
+            mtu = 180;
+            int numberOfPackets = (int) Math.ceil(pictureByteArray.length / (double) mtu);
 
-            int numberOfPackets = (int) Math.ceil( pictureByteArray.length / (double)mtu);
-
-            Log.i("IMAGEEEEEEN NUMEOR DE PAQUETES:   ", String.valueOf(numberOfPackets));
+            Log.i("NUMBER OF BLE PACKETS", String.valueOf(numberOfPackets));
 
             Integer start = 0;
 
+            for (int i = 0; i < numberOfPackets; i++) {
+                int end = start + mtu;
 
-            for(int i = 0; i < numberOfPackets; i++) {
-                int end = start+mtu;
-
-                if(end>pictureByteArray.length){end = pictureByteArray.length;}
-                byte [] packet = Arrays.copyOfRange(pictureByteArray, start, end);
+                if (end > pictureByteArray.length) {
+                    end = pictureByteArray.length;
+                }
+                byte[] packet = Arrays.copyOfRange(pictureByteArray, start, end);
                 loadCharacteristic.setValue(packet);
                 bluetoothGatt.writeCharacteristic(loadCharacteristic);
                 try {
@@ -133,9 +132,6 @@ public class MainActivity extends AppCompatActivity {
                     bluetoothGatt.writeCharacteristic(sendCharacteristic);
                 }
             }, 2000);
-
-
-
         });
 
         connectButton = findViewById(R.id.connectBLE);
@@ -181,8 +177,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void takePicture() {
         ImagePicker.with(this)
-                .compress(104)            //Final image size will be less than 1 MB(Optional)
-                .maxResultSize(1080, 1080)    //Final image resolution will be less than 1080 x 1080(Optional)
+                .compress(140)            // 140 KB
+                .maxResultSize(1080, 1080)    //1080x1080 pixels
                 .start();
     }
 
@@ -232,9 +228,9 @@ public class MainActivity extends AppCompatActivity {
                         .build();
             }
             scanner.startScan(filters, scanSettings, scanCallback);
-            Log.d(TAGBLESCANNER, "BLE scan started");
+            Log.d(TAGBLESCANNER, "BLE SCAN STARTED");
         } else {
-            Log.e(TAGBLESCANNER, "Could not get scanner object");
+            Log.e(TAGBLESCANNER, "COULD NOT GET SCANNER OBJECT");
         }
     }
 
@@ -319,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("BluetoothGattCallback", "Write exceeded connection ATT MTU!");
             }
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.i("BluetoothGattCallback", "Wrote to characteristic $uuid | value: ${value.toHexString()}");
+                Log.i("BluetoothGattCallback", "Wrote to characteristic}");
 
             }
             if (status == BluetoothGatt.GATT_WRITE_NOT_PERMITTED) {
@@ -328,43 +324,41 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+    };
+
+    final private ScanCallback scanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            Log.d(TAGBLE, "BLE scan result");
+            super.onScanResult(callbackType, result);
         }
 
-        ;
-
-        final private ScanCallback scanCallback = new ScanCallback() {
-            @Override
-            public void onScanResult(int callbackType, ScanResult result) {
-                Log.d(TAGBLE, "BLE scan result");
-                super.onScanResult(callbackType, result);
-            }
-
-            @SuppressLint("MissingPermission")
-            @Override
-            public void onBatchScanResults(List<ScanResult> results) {
-                Log.d(TAGBLE, "BLE scan results");
-                bluetoothDevice = results.get(0).getDevice();
-                bluetoothGatt = bluetoothDevice.connectGatt(getApplicationContext(), false, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE);
-                super.onBatchScanResults(results);
-            }
-
-            @Override
-            public void onScanFailed(int errorCode) {
-                Log.d(TAGBLE, "Scan error");
-                super.onScanFailed(errorCode);
-            }
-        };
-
-        private void createNotificationChannel() {
-            // Create the NotificationChannel, but only on API 26+ because
-            // the NotificationChannel class is new and not in the support library
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
-                // Register the channel with the system; you can't change the importance
-                // or other notification behaviors after this
-                NotificationManager notificationManager = getSystemService(NotificationManager.class);
-                notificationManager.createNotificationChannel(channel);
-            }
+        @SuppressLint("MissingPermission")
+        @Override
+        public void onBatchScanResults(List<ScanResult> results) {
+            Log.d(TAGBLE, "BLE scan results");
+            bluetoothDevice = results.get(0).getDevice();
+            bluetoothGatt = bluetoothDevice.connectGatt(getApplicationContext(), false, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE);
+            super.onBatchScanResults(results);
         }
 
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.d(TAGBLE, "Scan error");
+            super.onScanFailed(errorCode);
+        }
+    };
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
+
+}
