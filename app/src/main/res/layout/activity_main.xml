@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:minHeight="300dp"
-            app:srcCompat="@drawable/bluetooth" />
+            app:srcCompat="@drawable/ic_camera" />
 
         <Button
             android:id="@+id/takePictureBtn"

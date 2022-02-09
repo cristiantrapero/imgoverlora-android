@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -59,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     // Bytes to send
     InputStream imageStream;
     byte[] pictureByteArray;
-    Integer mtu = 512;
+    Integer mtu = 200;
 
     // Bluetooth configuration
     BluetoothManager bluetoothManager;
@@ -69,11 +71,14 @@ public class MainActivity extends AppCompatActivity {
     BluetoothGatt bluetoothGatt;
     BluetoothGattService service;
     BluetoothGattCharacteristic sendCharacteristic;
+    BluetoothGattCharacteristic loadCharacteristic;
 
     // BLE characteristics
     // TODO public static final String MAC_ADDRESS = "80:7D:3A:93:6A:5A";
     public static final UUID UUID_SERVICE = UUID.fromString("62613134-6534-3437-6434-633739336563");
-    public static final UUID UUID_SEND_CHARACTERISTIC = UUID.fromString("33613861-3230-3030-3231-636132343230");
+    public static final UUID UUID_SEND_CHARACTERISTIC = UUID.fromString("64336533-6366-6132-6231-396238316630");
+    public static final UUID UUID_LOAD_CHARACTERISTIC = UUID.fromString("33613861-3230-3030-3231-636132343230");
+
     public static final String TAGBLESCANNER = "BLEScanner";
     public static final String TAGBLE = "BLE";
     UUID[] serviceUUIDs = new UUID[]{UUID_SERVICE};
@@ -95,10 +100,42 @@ public class MainActivity extends AppCompatActivity {
         sendPictureButton = findViewById(R.id.sendPictureBtn);
         sendPictureButton.setOnClickListener(v -> {
             Log.i(TAGBLE, "Send the image");
-            pictureByteArray = new byte[180];
-            sendCharacteristic.setValue(pictureByteArray);
-            sendCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-            bluetoothGatt.writeCharacteristic(sendCharacteristic);
+
+            mtu = 100;
+            Log.i("IMAGEEEEEEEEN TAMANIO:   ", String.valueOf(pictureByteArray.length));
+
+            int numberOfPackets = (int) Math.ceil( pictureByteArray.length / (double)mtu);
+
+            Log.i("IMAGEEEEEEN NUMEOR DE PAQUETES:   ", String.valueOf(numberOfPackets));
+
+            Integer start = 0;
+
+
+            for(int i = 0; i < numberOfPackets; i++) {
+                int end = start+mtu;
+
+                if(end>pictureByteArray.length){end = pictureByteArray.length;}
+                byte [] packet = Arrays.copyOfRange(pictureByteArray, start, end);
+                loadCharacteristic.setValue(packet);
+                bluetoothGatt.writeCharacteristic(loadCharacteristic);
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                start += mtu;
+            }
+
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                public void run() {
+                    sendCharacteristic.setValue("send");
+                    bluetoothGatt.writeCharacteristic(sendCharacteristic);
+                }
+            }, 2000);
+
+
+
         });
 
         connectButton = findViewById(R.id.connectBLE);
@@ -242,6 +279,16 @@ public class MainActivity extends AppCompatActivity {
             service = gatt.getService(UUID_SERVICE);
             if (service != null) {
                 Log.i(TAGBLE, "Service obtained");
+
+                loadCharacteristic = service.getCharacteristic(UUID_LOAD_CHARACTERISTIC);
+                if (loadCharacteristic != null) {
+                    Log.i(TAGBLE, "Load image characteristic found");
+                    gatt.setCharacteristicNotification(loadCharacteristic, true);
+                    gatt.requestMtu(mtu);
+                } else {
+                    Log.i(TAGBLE, "Load image characteristic not found");
+                }
+
                 sendCharacteristic = service.getCharacteristic(UUID_SEND_CHARACTERISTIC);
                 if (sendCharacteristic != null) {
                     Log.i(TAGBLE, "Send image characteristic found");
