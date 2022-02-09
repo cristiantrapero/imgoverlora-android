@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     // Bytes to send
     InputStream imageStream;
     byte[] pictureByteArray;
+    Integer mtu = 512;
 
     // Bluetooth configuration
     BluetoothManager bluetoothManager;
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
         sendPictureButton = findViewById(R.id.sendPictureBtn);
         sendPictureButton.setOnClickListener(v -> {
             Log.i(TAGBLE, "Send the image");
-            pictureByteArray = new byte[2048];
+            pictureByteArray = new byte[180];
             sendCharacteristic.setValue(pictureByteArray);
             sendCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
             bluetoothGatt.writeCharacteristic(sendCharacteristic);
@@ -143,8 +144,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void takePicture() {
         ImagePicker.with(this)
-                .compress(1)            //Final image size will be less than 1 MB(Optional)
-                .maxResultSize(1280, 720)    //Final image resolution will be less than 1080 x 1080(Optional)
+                .compress(104)            //Final image size will be less than 1 MB(Optional)
+                .maxResultSize(1080, 1080)    //Final image resolution will be less than 1080 x 1080(Optional)
                 .start();
     }
 
@@ -245,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
                 if (sendCharacteristic != null) {
                     Log.i(TAGBLE, "Send image characteristic found");
                     gatt.setCharacteristicNotification(sendCharacteristic, true);
-                    gatt.requestMtu(512);
+                    gatt.requestMtu(mtu);
                 } else {
                     Log.i(TAGBLE, "Send image characteristic not found");
                 }
@@ -255,8 +256,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
-            Log.w("YEEEEEEEAHHHAHA", Integer.toString(mtu));
+        public void onMtuChanged(BluetoothGatt gatt, int newMTU, int status) {
+            // Change mtu size
+            mtu = newMTU;
+            Log.w("MTU changed:", Integer.toString(newMTU));
         }
 
         @Override
